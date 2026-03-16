@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Medical ChatBot</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Nunito:wght@400;700&display=swap"
+        rel="stylesheet">
+    <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+</head>
+
+<body class="light-theme">
+    <div class="chat-container">
+        <header>
+            <img src="https://thumbs.dreamstime.com/b/health-care-plus-sign-isolated-red-round-button-abstract-illustration-health-care-plus-sign-red-round-button-103896527.jpg" alt="Medical Bot" class="bot-icon">
+            <h1>Medical ChatBot</h1>
+            <button id="theme-toggle" title="Toggle Theme">🌙</button>
+        </header>
+
+        <div class="chat-box" id="chat-box">
+            <!-- Chat messages will appear here -->
+        </div>
+
+        <div class="input-container">
+            <input type="text" id="user-input" placeholder="Ask about your health...">
+            <button id="send-btn"><i class="fas fa-paper-plane"></i> Send</button>
+        </div>
+    </div>
+
+    <script>
+        const chatBox = document.getElementById('chat-box');
+        const userInput = document.getElementById('user-input');
+        const sendBtn = document.getElementById('send-btn');
+        const themeToggle = document.getElementById('theme-toggle');
+        const body = document.body;
+
+        // Theme toggle
+        themeToggle.addEventListener('click', () => {
+            body.classList.toggle('dark-theme');
+            body.classList.toggle('light-theme');
+            themeToggle.innerText = body.classList.contains('dark-theme') ? "☀️" : "🌙";
+        });
+
+        function addMessage(message, sender) {
+            const msgDiv = document.createElement('div');
+            msgDiv.classList.add('message', sender);
+
+            // Add emojis
+            if (sender === 'bot') message = "💡 " + message;
+            if (sender === 'user') message = "👤 " + message;
+
+            msgDiv.innerText = message;
+            chatBox.appendChild(msgDiv);
+            chatBox.scrollTop = chatBox.scrollHeight;
+        }
+
+        function showTypingIndicator() {
+            const typingDiv = document.createElement('div');
+            typingDiv.classList.add('message', 'bot', 'typing');
+            typingDiv.innerText = '💬 Bot is typing...';
+            chatBox.appendChild(typingDiv);
+            chatBox.scrollTop = chatBox.scrollHeight;
+            return typingDiv;
+        }
+
+        // Send message
+        sendBtn.addEventListener('click', () => {
+            const message = userInput.value.trim();
+            if (message === "") return;
+            addMessage(message, 'user');
+            userInput.value = "";
+
+            const typingDiv = showTypingIndicator();
+
+            // Fetch response from Flask backend
+            setTimeout(() => {
+                fetch("/get", {
+                    method: "POST",
+                    body: new URLSearchParams({ msg: message }),
+                    headers: { "Content-Type": "application/x-www-form-urlencoded" }
+                })
+                    .then(response => response.text())
+                    .then(data => {
+                        typingDiv.remove();
+                        addMessage(data, 'bot');
+                    });
+            }, 500);
+        });
+
+        userInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') sendBtn.click();
+        });
+    </script>
+</body>
+
+</html>
